@@ -1,4 +1,5 @@
 import sqlite3
+from pathlib import Path
 
 
 class DBManager:
@@ -6,7 +7,28 @@ class DBManager:
     Класс для работы с базой данных
     """
     def __init__(self):
-        self.con = sqlite3.connect('../../A/PY/VKinder/db.db')
+        filepath = 'db.db'
+        obj = Path(filepath)
+        if not obj.exists():
+            self.con = self.createDB(filepath)
+        else:
+            self.con = sqlite3.connect('db.db')
+
+    @staticmethod
+    def createDB(filepath):
+        con = sqlite3.connect(filepath)
+        cur = con.cursor()
+        cur.execute("""CREATE TABLE IF NOT EXISTS filter(
+           user_id TEXT,
+           name TEXT,
+           value TEXT);
+        """)
+        cur.execute("""CREATE TABLE IF NOT EXISTS exclude(
+           user_id TEXT,
+           buddy_id TEXT);
+        """)
+        con.commit()
+        return con
 
     @staticmethod
     def testFilter(user_filter):

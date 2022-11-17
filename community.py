@@ -28,13 +28,17 @@ class Community:
         :param user_id: id пользователя/сообщества, которому загружается фото
         :return: параметры загруженного фото
         """
-        img = requests.get(url).content
-        f = BytesIO(img)
-        response = self.upload.photo_messages(f, user_id)[0]
-        owner_id = response['owner_id']
-        photo_id = response['id']
-        access_key = response['access_key']
-        return owner_id, photo_id, access_key
+        err = None
+        try:
+            img = requests.get(url).content
+            f = BytesIO(img)
+            response = self.upload.photo_messages(f, user_id)[0]
+            owner_id = response['owner_id']
+            photo_id = response['id']
+            access_key = response['access_key']
+        except Exception:
+            return "Произошла ошбика при загрузке файла. Попробуйте повторить позднее.", None, None, None
+        return err, owner_id, photo_id, access_key
 
     def sendMessage(self, user_id, message):
         """
@@ -87,14 +91,21 @@ class Community:
                         self.sendMessage(user_id, "Готово")
                     elif request == "ищи":
                         self.sendMessage(user_id, "Начинаю поиск. Подождите немного...")
-                        buddies = self.search.getBuddy(user_id, 2)
-                        for buddy in buddies:
-                            self.db.addExclusion(event.user_id, buddy['id'])
-                            self.sendMessage(user_id, buddy['name'])
-                            self.sendMessage(user_id, f"https://vk.com/id{buddy['id']}")
-                            for photo in buddy['photos']:
-                                url = photo['url']
-                                self.sendPhoto(event.user_id, *self.upload_photo(url, event.user_id))
+                        err, buddies = self.search.getBuddy(user_id, 2)
+                        if err is not None:
+                            self.sendMessage(user_id, err)
+                        else:
+                            for buddy in buddies:
+                                self.db.addExclusion(event.user_id, buddy['id'])
+                                self.sendMessage(user_id, buddy['name'])
+                                self.sendMessage(user_id, f"https://vk.com/id{buddy['id']}")
+                                for photo in buddy['photos']:
+                                    url = photo['url']
+                                    err, owner_id, photo_id, access_key = self.upload_photo(url, event.user_id)
+                                    if err is not None:
+                                        self.sendMessage(user_id, err)
+                                    else:
+                                        self.sendPhoto(event.user_id, owner_id, photo_id, access_key)
                     else:
                         self.sendMessage(user_id, "Не поняла вашего вопроса...")
 

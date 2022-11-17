@@ -61,22 +61,27 @@ class Searcher:
         Метод получения данных человека, которые нужно вывести в чат
         :param user_id: id пользователя, с которым работаем
         :param n: количество людей, которых нужно найти
-        :return: список найденных людей
+        :return: ошибка (если есть), список найденных людей
         """
         buddies = []
-        result = self.search(user_id)
-        for item in result['items']:
-            if self.db.hasExclusion(user_id, item['id']):
-                continue
-            if item['can_access_closed']:
-                photos = self.getTop3(item['id'])
-                if len(photos) >= 3:
-                    buddy = {
-                        'id': item['id'],
-                        'name': f"{item['first_name']} {item['last_name']}",
-                        'photos': photos
-                    }
-                    buddies.append(buddy)
-            if len(buddies) == n:
-                break
-        return buddies
+        err = None
+        try:
+            result = self.search(user_id)
+            for item in result['items']:
+                if self.db.hasExclusion(user_id, item['id']):
+                    continue
+                if item['can_access_closed']:
+                    photos = self.getTop3(item['id'])
+                    if len(photos) >= 3:
+                        buddy = {
+                            'id': item['id'],
+                            'name': f"{item['first_name']} {item['last_name']}",
+                            'photos': photos
+                        }
+                        buddies.append(buddy)
+                if len(buddies) == n:
+                    break
+        except Exception:
+            err = "Произошла ошибка. Попробуйте позднее."
+
+        return err, buddies
